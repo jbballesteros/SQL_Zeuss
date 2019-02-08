@@ -1,0 +1,45 @@
+DECLARE @CUENTA_ING AS VARCHAR(20)='41351004'
+DECLARE @CUENTA_ING2 AS VARCHAR(20)='41350601'
+DECLARE @CUENTA VARCHAR(20)='61351004'
+DECLARE @AÑO AS INTEGER=2016
+DECLARE @MES AS INTEGER=4
+DECLARE @BODEGA AS INTEGER=1
+DECLARE @CENTROINF AS INTEGER=(@BODEGA*100)-100
+DECLARE @CENTROMAY AS INTEGER=@CENTROINF+99
+DECLARE @CENTRO AS INTEGER=@CENTROINF+3
+
+
+INSERT INTO movimiento ( tipo, numero, seq, cuenta, centro, nit, fec, valor)
+
+SELECT F.TIPO,F.NUMERO,ROW_NUMBER() OVER (ORDER BY F.NUMERO ASC)+1200,CUENTA,@CENTRO CENTRO,7,D.fecha,DIFERENCIA
+FROM (
+
+
+SELECT ISNULL(P.TIPO,T.TIPO) TIPO,ISNULL(P.numero,T.numero) NUMERO ,@CUENTA_ING CUENTA ,ROUND(isnull(P.COSTO,0)-isnull(T.VALOR,0),0)*-1 DIFERENCIA,fec
+FROM (
+SELECT  tipo,numero,SUM(valor_unitario*cantidad) COSTO
+FROM v_estinsa_lin_ventas_reclasificacion
+WHERE ano=@AÑO AND mes=@MES AND bodega=@BODEGA and  IDSUBCONTABLE=@CUENTA AND IDSW=1
+GROUP BY tipo,numero) AS P FULL JOIN
+(
+
+SELECT tipo,numero,SUM(valor)*-1  VALOR,fec
+FROM movimiento
+where cuenta=@CUENTA_ING and centro between @CENTROINF and @CENTROMAY and YEAR(fec)=@AÑO and MONTH(fec)=@MES
+GROUP BY tipo,numero,fec) AS T ON (P.tipo=T.tipo AND P.numero=T.numero)
+WHERE ROUND(P.COSTO-ISNULL(T.VALOR,0),0)<>0 OR P.COSTO IS NULL
+UNION
+
+SELECT ISNULL(P.TIPO,T.TIPO) TIPO,ISNULL(P.numero,T.numero) NUMERO,@CUENTA_ING2  ,ROUND(isnull(P.COSTO,0)-isnull(T.VALOR,0),0) DIFERENCIA,fec
+FROM (
+SELECT  tipo,numero,SUM(valor_unitario*cantidad) COSTO
+FROM v_estinsa_lin_ventas_reclasificacion
+WHERE ano=@AÑO AND mes=@MES AND bodega=@BODEGA and  IDSUBCONTABLE=@CUENTA AND IDSW=1
+GROUP BY tipo,numero) AS P FULL JOIN
+(
+
+SELECT tipo,numero,SUM(valor)*-1  VALOR,fec
+FROM movimiento
+where cuenta=@CUENTA_ING and centro between @CENTROINF and @CENTROMAY and YEAR(fec)=@AÑO and MONTH(fec)=@MES
+GROUP BY tipo,numero,fec) AS T ON (P.tipo=T.tipo AND P.numero=T.numero)
+WHERE ROUND(P.COSTO-ISNULL(T.VALOR,0),0)<>0 OR P.COSTO IS NULL) AS F INNER JOIN documentos D ON (F.TIPO=D.tipo AND F.NUMERO=D.numero)

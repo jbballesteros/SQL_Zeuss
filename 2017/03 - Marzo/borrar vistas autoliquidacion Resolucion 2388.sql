@@ -1,0 +1,9 @@
+
+
+drop view v_nom_autoliquidacion_nit
+drop view v_nom_autoliquidacion_ingresos
+drop view v_nom_autoliquidacion_retiros
+drop view v_nom_autoliquidacion_mes_completo
+drop view v_nom_autoliquidacion_unificar
+drop view v_nom_autoliquidacion_nit_unificar_decreto_2388
+

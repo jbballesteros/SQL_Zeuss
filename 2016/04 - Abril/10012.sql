@@ -1,0 +1,42 @@
+
+
+SELECT CONCEPTO,CASE WHEN TIPO='C' THEN 31 ELSE 43 END TIPO,nit NIT,
+CASE WHEN TIPO='C' THEN '' ELSE CAST(DIGITO AS VARCHAR(10)) END DIGITO,
+CASE WHEN TIPO='C' THEN NOMBRES ELSE '' END NOMBRES,
+CASE WHEN TIPO<>'C' THEN NOMBRES ELSE '' END RAZON_SOCIAL,UPPER(direccion) DIRECCION,
+y_dpto DPTO,y_ciudad CIUDAD,PAIS,SUM(VALOR) VALOR
+FROM (
+
+
+SELECT 
+
+VC.CONCEPTO
+
+
+
+
+ CONCEPTO,
+ISNULL(BT.tipo,TR.tipo_identificacion) TIPO,TR.nit,ISNULL(TR.digito,0) DIGITO,
+
+UPPER(ISNULL(REPLACE(REPLACE(BT.nombres,'.',''),'*',''),REPLACE(REPLACE(TR.nombres,'.',''),'*',''))) NOMBRES, TR.y_pais PAIS,
+TR.y_ciudad,TR.y_dpto,TR.direccion,
+ROUND(
+CASE 
+WHEN VC.CONCEPTO=5007 THEN (CASE WHEN CV.ano=2015 AND CV.mes<>13 AND TR.nit<>800003644 THEN CV.debito-CV.credito ELSE 0 END )
+WHEN VC.CONCEPTO=5008 THEN (CASE WHEN CV.ano=2015 AND CV.mes<>13 THEN CV.debito ELSE 0 END )
+ELSE (CASE WHEN CV.ano=2015 AND CV.mes=12 THEN CV.saldo_inicial+CV.debito-CV.credito ELSE 0 END ) END,0) VALOR
+
+	
+
+
+FROM cuentas_val CV 
+INNER JOIN v_c_Cuentas_F1001 VC ON (CV.cuenta=VC.cuenta)
+INNER JOIN terceros T ON (CV.nit=T.nit)
+LEFT JOIN terceros TR ON (T.nit_real=TR.nit)
+LEFT JOIN borretertemp BT ON (TR.nit=BT.nit)
+WHERE CV.ano=2015  
+
+
+) AS P
+WHERE P.VALOR<>0
+GROUP BY CONCEPTO,TIPO,nit,DIGITO,NOMBRES,y_dpto,y_ciudad,PAIS,direccion

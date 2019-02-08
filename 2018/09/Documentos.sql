@@ -1,0 +1,4 @@
+SELECT DAY(date_ins) DIA,DATEPART(HOUR,DATE_INS) hora,COUNT(numero) 
+FROM documentos
+WHERE fecha>='01/09/2018'
+GROUP BY DAY(date_ins),DATEPART(HOUR,DATE_INS)

@@ -1,0 +1,1 @@
+EXEC sp_PSE_Updates @psw=1, @pempresa='estaciones123', @pid_pago=94

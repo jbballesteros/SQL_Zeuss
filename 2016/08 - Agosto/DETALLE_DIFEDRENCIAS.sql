@@ -1,0 +1,34 @@
+USE ESTINSA
+DECLARE @AÑO AS INTEGER=2016
+DECLARE @MES AS INTEGER=5
+DECLARE @BODEGA AS INTEGER=8
+DECLARE @CUENTA AS VARCHAR(10)='14350501'
+DECLARE @CENTRO1 AS INTEGER=701
+DECLARE @CENTRO2 AS INTEGER=799
+
+SELECT C.descripcion,SUM(CV.saldo_inicial+CV.debito-CV.credito) SALDO
+FROM cuentas_val CV INNER JOIN cuentas C ON (CV.cuenta=C.cuenta)
+WHERE @AÑO=ano AND @MES=mes  AND centro BETWEEN @CENTRO1 AND @CENTRO2 AND C.cuenta LIKE '14%'
+GROUP BY C.cuenta,C.descripcion
+ORDER BY C.descripcion
+
+
+SELECT *,ISNULL(COSTO,0)-ISNULL(VALOR,0) DIFERENCIA
+FROM (
+
+SELECT DL.tipo,DL.numero,ROUND(SUM(DL.cantidad*DL.costo_unitario),0) COSTO,DL.fec
+FROM documentos_lin DL
+WHERE codigo IN (SELECT RS.codigo
+FROM referencias_sto RS 
+INNER JOIN referencias R ON (RS.codigo=R.codigo)
+WHERE ano=@AÑO AND mes=@MES AND RS.bodega=@BODEGA AND R.cuenta=@CUENTA
+GROUP BY RS.codigo
+) AND YEAR(fec)=@AÑO AND MONTH(fec)=@MES 
+GROUP BY DL.tipo,DL.numero,DL.fec) AS P
+
+FULL JOIN (
+SELECT TIPO,NUMERO,ROUND(SUM(CASE WHEN VALOR<0 THEN valor*-1 ELSE valor END),0) VALOR ,fec
+FROM movimiento 
+WHERE cuenta=@CUENTA AND YEAR(fec)=@AÑO AND MONTH(fec)=@MES  AND centro BETWEEN @CENTRO1 AND @CENTRO2
+GROUP BY tipo,numero,fec) AS M ON (P.tipo=M.tipo AND P.numero=M.numero)
+WHERE ISNULL(COSTO,0)-ISNULL(VALOR,0)<>0

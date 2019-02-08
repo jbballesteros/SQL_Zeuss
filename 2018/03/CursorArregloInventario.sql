@@ -1,0 +1,95 @@
+DECLARE @TSQL AS VARCHAR(100)
+DECLARE @RST AS INTEGER
+DECLARE @CUENTA AS VARCHAR(100)
+DECLARE @CENTRO AS INTEGER
+DECLARE @INF AS INTEGER
+DECLARE @SUP AS INTEGER
+DECLARE @SEQ AS INTEGER
+
+SET @TSQL='ACTUALIZA_INVENTARIOS'
+SET @RST =0
+	
+BEGIN TRAN 	@TSQL
+	
+	BEGIN TRY
+
+		DECLARE ACTINV CURSOR  
+		
+			FOR 
+			
+			SELECT cuenta,centro,inf,sup
+			FROM cuentas_inventarios_centro
+
+		OPEN ACTINV
+
+		FETCH NEXT FROM ACTINV INTO @CUENTA,@CENTRO,@INF,@SUP
+
+		WHILE @@FETCH_STATUS = 0  
+		BEGIN 	 			
+			
+			SELECT @SEQ=MAX(SEQ)
+			FROM movimiento
+			WHERE TIPO='AJ' AND numero=1811
+			
+			IF EXISTS(SELECT 'AJ',1811,ROW_NUMBER() OVER (ORDER BY CUENTA,CENTRO)+@SEQ,cuenta,centro,900625898,'28/02/2018',SALDO,SALDO
+			FROM (
+
+			SELECT cuenta,centro,SUM(CV.saldo_inicial+CV.debito-CV.credito)*-1 SALDO
+			FROM cuentas_val CV
+			WHERE cuenta=@CUENTA AND centro BETWEEN @INF AND @SUP AND centro<>@CENTRO
+			AND ANO=2018 AND MES=2
+			GROUP BY CUENTA,centro
+			UNION
+			SELECT cuenta,1000,SUM(CV.saldo_inicial+CV.debito-CV.credito) SALDO
+			FROM cuentas_val CV
+			WHERE cuenta=@CUENTA AND centro BETWEEN @INF AND @SUP AND centro<>@CENTRO
+			AND ANO=2018 AND MES=2
+			GROUP BY CUENTA,centro) AS P)
+			BEGIN
+					INSERT INTO movimiento (tipo,numero,seq,cuenta,centro,nit,fec,valor,valor_niif)
+
+			SELECT 'AJ',1811,ROW_NUMBER() OVER (ORDER BY CUENTA,CENTRO)+@SEQ,cuenta,centro,900625898,'28/02/2018',SALDO,SALDO
+			FROM (
+
+			SELECT cuenta,centro,SUM(CV.saldo_inicial+CV.debito-CV.credito)*-1 SALDO
+			FROM cuentas_val CV
+			WHERE cuenta=@CUENTA AND centro BETWEEN @INF AND @SUP AND centro<>@CENTRO
+			AND ANO=2018 AND MES=2
+			GROUP BY CUENTA,centro
+			UNION
+			SELECT cuenta,1000,SUM(CV.saldo_inicial+CV.debito-CV.credito) SALDO
+			FROM cuentas_val CV
+			WHERE cuenta=@CUENTA AND centro BETWEEN @INF AND @SUP AND centro<>@CENTRO
+			AND ANO=2018 AND MES=2
+			GROUP BY CUENTA,centro) AS P
+			END
+
+
+			
+				 
+			FETCH NEXT FROM ACTINV INTO @CUENTA,@CENTRO,@INF,@SUP
+		END
+		
+		CLOSE ACTINV
+		DEALLOCATE ACTINV
+		
+		COMMIT TRANSACTION
+
+		END TRY
+			
+						
+		BEGIN CATCH
+		
+			SELECT ERROR_MESSAGE() + ' ' + ISNULL(@CUENTA,'') + ' ' + CAST(ISNULL(@CENTRO,'') AS VARCHAR)		 	 
+		
+			ROLLBACK TRANSACTION @TSQL
+			
+			
+			SET @RST=0
+			
+					
+			CLOSE ACTINV
+			DEALLOCATE ACTINV
+		END CATCH
+
+

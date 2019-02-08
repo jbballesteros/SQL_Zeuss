@@ -1,0 +1,31 @@
+SELECT P.IDPRIMERA,P.PRIMERA,CAST(P.IDPRIMERA AS VARCHAR (15)) + ' ' + P.PRIMERA DPRIMERA,
+P.IDSEGUNDA,P.SEGUNDA,CAST(P.IDSEGUNDA AS VARCHAR (15)) + ' ' + P.SEGUNDA DSEGUNDA,
+P.IDTERCERO,P.TERCERO,CAST(P.IDTERCERO AS VARCHAR (15)) + ' ' + P.TERCERO DTERCERO,
+P.IDCUARTO,P.CUARTA,CAST(P.IDCUARTO AS VARCHAR (15)) + ' ' + P.CUARTA DCUARTA,
+P.IDQUINTA,P.QUINTA,CAST(P.IDQUINTA AS VARCHAR (15)) + ' ' + P.QUINTA DQUINTA,
+P.IDCUENTA,P.CUENTA,CAST(P.IDCUENTA AS VARCHAR (15)) + ' ' + P.CUENTA DCUENTA,
+P.SALDO_INICIAL,P.DEBITO,P.CREDITO,P.NUEVO_SALDO
+FROM (
+
+SELECT ano,CQ.cuenta IDQUINTA,CQ.descripcion QUINTA,
+CC.cuenta IDCUARTO,CC.descripcion CUARTA,CT.cuenta IDTERCERO,CT.descripcion TERCERO,
+CS.cuenta IDSEGUNDA,CS.descripcion SEGUNDA,CP.cuenta IDPRIMERA,CP.descripcion PRIMERA,
+
+CV.cuenta IDCUENTA,C.descripcion CUENTA,
+SUM(CASE WHEN CV.mes=1 THEN CV.saldo_inicial ELSE 0 END) SALDO_INICIAL,
+SUM(debito) DEBITO,
+SUM(credito) CREDITO,
+SUM(CASE WHEN CV.mes=12 THEN CV.saldo_inicial +CV.DEBITO-CV.credito ELSE 0 END) NUEVO_SALDO
+FROM ryr_cuentasnivel CV 
+INNER JOIN cuentas C ON (CV.cuenta=C.cuenta)
+INNER JOIN cuentas CQ ON (CV.Quinto=CQ.cuenta)
+INNER JOIN cuentas CC ON (CV.Cuarto=CC.cuenta)
+INNER JOIN cuentas CT ON (CV.Tercer=CT.cuenta)
+INNER JOIN cuentas CS ON (CV.Segundo=CS.cuenta)
+INNER JOIN cuentas CP ON (CV.Primer=CP.cuenta)
+WHERE CV.ano=2015  and CV.mes<>13 
+GROUP BY ano,CQ.cuenta,CQ.descripcion,CC.cuenta,CC.descripcion,CT.cuenta,CT.descripcion,CS.cuenta,CS.descripcion,CP.cuenta,CP.descripcion,CV.cuenta,C.descripcion
+
+
+) AS P
+ORDER BY P.IDCUENTA

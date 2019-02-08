@@ -1,0 +1,14 @@
+SELECT *,S.VALOR-P.VALOR
+FROM (
+SELECT cuenta,SUM(valor) VALOR
+FROM movimiento
+WHERE fec BETWEEN '01/05/2016' AND '31/05/2016'
+GROUP BY cuenta) AS P
+
+FULL JOIN (
+SELECT cuenta,SUM(valor) VALOR
+FROM ZP0630.DBO.movimiento
+WHERE fec BETWEEN '01/05/2016' AND '31/05/2016'
+GROUP BY cuenta) AS S ON (P.cuenta=S.cuenta)
+WHERE P.VALOR<>S.VALOR
+

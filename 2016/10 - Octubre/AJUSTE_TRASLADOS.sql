@@ -1,0 +1,16 @@
+DECLARE @FECHA AS DATE='31/08/2017'
+DECLARE @NUMERO AS INTEGER=2500
+DECLARE @ANO AS INTEGER=2017
+DECLARE @MES AS INTEGER=8
+
+
+
+INSERT INTO movimiento (tipo,numero,seq,cuenta,centro,nit,fec,valor)
+SELECT 'AJT',@NUMERO,ROW_NUMBER() OVER (ORDER BY NIT),cuenta,centro,811043174,@FECHA,SUM(SALDO_INICIAL+debito-credito)*-1
+FROM cuentas_val
+WHERE centro=9998 AND ano=@ANO AND mes=@MES
+GROUP BY nit,cuenta,centro
+HAVING  SUM(SALDO_INICIAL+debito-credito)<>0
+
+
+

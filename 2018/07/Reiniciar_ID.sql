@@ -1,0 +1,1 @@
+DBCC CHECKIDENT (terceros_8_topesgls, RESEED,0)

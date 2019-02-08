@@ -1,0 +1,66 @@
+DECLARE @FECHA AS DATE
+DECLARE @DOMINGO AS BIT
+DECLARE @SABADO AS BIT
+DECLARE @FESTIVO AS BIT
+DECLARE @DIA_HABIL AS INT
+DECLARE @DIA_HABILANT AS INT
+DECLARE @MAX_DIA AS INT
+DECLARE @FECHA_INF AS DATE='01/12/2019'
+DECLARE @FECHA_SUP AS DATE='31/12/2019'
+
+
+DECLARE CUR_BON_CALENDARIO CURSOR 
+FOR 
+
+	select fecha,domingo,sabado,festivo,dia_habil
+	from bon_calendario_tbl
+	where fecha between @FECHA_INF and @FECHA_SUP
+
+OPEN CUR_BON_CALENDARIO
+
+FETCH NEXT FROM CUR_BON_CALENDARIO INTO @FECHA,@DOMINGO,@SABADO,@FESTIVO,@DIA_HABIL
+
+WHILE @@FETCH_STATUS = 0  
+		BEGIN 
+			IF DAY(@FECHA)=1
+			BEGIN
+				UPDATE bon_calendario_tbl
+				SET dia_habil=1
+				WHERE fecha=@FECHA
+			END
+			ELSE
+			BEGIN
+				SELECT @DIA_HABILANT=dia_habil
+				FROM bon_calendario_tbl
+				WHERE fecha=DATEADD(DAY,-1,@FECHA)
+
+				IF @DOMINGO=0 AND @FESTIVO=0
+				BEGIN
+					UPDATE bon_calendario_tbl
+					SET dia_habil=@DIA_HABILANT+1
+					WHERE fecha=@FECHA
+				END
+				ELSE 
+				BEGIN
+					UPDATE bon_calendario_tbl
+					SET dia_habil=@DIA_HABILANT
+					WHERE fecha=@FECHA
+				END
+
+			END
+		
+			
+			FETCH NEXT FROM CUR_BON_CALENDARIO INTO @FECHA,@DOMINGO,@SABADO,@FESTIVO,@DIA_HABIL
+		END
+		
+		SELECT @MAX_DIA=max(dia_habil)
+		from bon_calendario_tbl
+		where fecha between @FECHA_INF and @FECHA_SUP
+
+		UPDATE bon_calendario_tbl
+		SET dia_mes=@MAX_DIA
+		where fecha between @FECHA_INF and @FECHA_SUP
+
+
+		CLOSE CUR_BON_CALENDARIO
+		DEALLOCATE CUR_BON_CALENDARIO

@@ -1,0 +1,5 @@
+ruta: ftp://www.dms.com.co/zeuss
+andrea (Hoy 16:40:50):
+usuario: zeussadmin
+andrea (Hoy 16:40:58):
+clave: Zeuss1

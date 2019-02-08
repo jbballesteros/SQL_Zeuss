@@ -1,0 +1,12 @@
+SELECT ZL.nit NIT,T.nombres CLIENTE,
+
+CASE WHEN T.bloqueo=0 THEN 'ACTIVO'
+WHEN T.bloqueo=1 THEN 'INACTIVO'
+WHEN T.bloqueo=2 THEN 'BLOQUEADO'
+WHEN T.bloqueo=3 THEN 'NO SE PUEDE USAR'
+ELSE '' END ESTADO_ACTUAL,
+sum(CASE WHEN ZL.fec<'01/11/2014' THEN 0 ELSE 1 END) ACTIVOS,
+MAX(FEC) ULTIMA_COMPRA
+FROM Zeuss_Lin_Ventas ZL INNER JOIN terceros T ON (ZL.nit=T.nit)
+WHERE subgrupo2 IN (2,3,4) AND T.nit<>T.nit_real
+GROUP BY ZL.nit,T.nombres,T.bloqueo

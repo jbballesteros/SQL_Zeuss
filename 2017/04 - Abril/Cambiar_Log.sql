@@ -1,0 +1,13 @@
+ALTER DATABASE ryrlub
+SET RECOVERY SIMPLE;
+GO
+select *
+from sys.database_files
+
+
+DBCC SHRINKFILE(ryr_Log, 1);
+GO
+
+ALTER DATABASE ryrlub
+SET RECOVERY FULL;
+GO

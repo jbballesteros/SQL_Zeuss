@@ -1,0 +1,11 @@
+DECLARE @TIPO AS VARCHAR
+DECLARE @NUMERO	 AS INTEGER
+DECLARE @ID_ELECTRONICO AS INTEGER
+
+
+INSERT INTO Factura_electronica (numero,tipo,estado,empresa,sw)
+VALUES (@NUMERO,@TIPO,1,1,1)
+
+SELECT @ID_ELECTRONICO=id
+FROM Factura_electronica
+WHERE tipo=@TIPO AND numero=@NUMERO

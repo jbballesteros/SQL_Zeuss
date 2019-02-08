@@ -1,0 +1,1 @@
+DELETE  FROM movimiento WHERE seq>=1000000 AND fec>='01/03/2016'  

@@ -1,0 +1,30 @@
+SELECT CONCEPTO,TIPO,nit,DIGITO,NOMBRES,MAX(PAIS) PAIS,SUM(VALOR) VALOR
+FROM (
+
+
+SELECT 
+CASE 
+WHEN CV.cuenta BETWEEN '4135' AND '4136'  THEN 4001
+WHEN CV.cuenta BETWEEN '4245' AND '429581'  THEN 4002
+WHEN CV.cuenta BETWEEN '4210' AND '421040'   THEN 4003 END CONCEPTO,
+ISNULL(BT.tipo,TR.tipo_identificacion) TIPO,TR.nit,ISNULL(TR.digito,0) DIGITO,
+
+UPPER(ISNULL(REPLACE(REPLACE(BT.nombres,'.',''),'*',''),REPLACE(REPLACE(TR.nombres,'.',''),'*',''))) NOMBRES, T.y_pais PAIS,
+ROUND(CV.saldo_inicial+CV.debito-CV.credito,0)*-1 VALOR
+	
+
+
+FROM cuentas_val CV 
+INNER JOIN terceros T ON (CV.nit=T.nit)
+LEFT JOIN terceros TR ON (T.nit_real=TR.nit)
+LEFT JOIN borretertemp BT ON (TR.nit=BT.nit)
+WHERE CV.ano=2015 AND CV.MES=12 AND 
+(
+CV.cuenta BETWEEN '4135' AND '4136' OR
+CV.cuenta BETWEEN '4245' AND '429581' OR
+CV.cuenta BETWEEN '4210' AND '421040' 
+) AND ROUND(CV.saldo_inicial+CV.debito-CV.credito,0)<>0
+
+
+) AS P
+GROUP BY CONCEPTO,TIPO,nit,DIGITO,NOMBRES

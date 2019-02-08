@@ -1,0 +1,22 @@
+DECLARE @AÑO AS INTEGER=2018
+DECLARE @MES AS INTEGER=8
+DECLARE @DIA AS INTEGER=23
+DECLARE @BODEGA AS INTEGER=1
+
+DROP TABLE Zeuss_Lin_Ventas_tbl
+
+
+select ZL.bodega BODEGA,ZL.ano ANO,ZL.mes MES,ZL.Dia DIA,
+ROUND(SUM(CASE WHEN ZL.subgrupo2=3 THEN ZL.can_ventas-ZL.can_devolu ELSE 0 END),0) DIESEL,
+ROUND(SUM(CASE WHEN ZL.subgrupo2=2 THEN ZL.can_ventas-ZL.can_devolu ELSE 0 END),0) CORRIENTE,
+ROUND(SUM(CASE WHEN ZL.subgrupo2=4 THEN ZL.can_ventas-ZL.can_devolu ELSE 0 END),0) EXTRA,
+ROUND(SUM(CASE WHEN ZL.subgrupo2=39 THEN ZL.can_ventas-ZL.can_devolu ELSE 0 END),0) DIESEL_ECOEXTREME,
+ROUND(SUM(ZL.can_ventas-ZL.can_devolu),0) TOTAL
+INTO Zeuss_Lin_Ventas_tbl
+from Zeuss_Lin_Ventas ZL 
+WHERE ZL.subgrupo2 IN (2,3,4,39) AND ZL.ano=@AÑO AND ZL.mes=@MES AND Dia<=@DIA
+GROUP BY CUBE(ZL.BODEGA,ZL.ANO,ZL.MES,ZL.Dia)
+
+
+
+

@@ -1,0 +1,15 @@
+DECLARE @TIPO AS VARCHAR(4)='EPAC'
+DECLARE @NUMERO AS INTEGER=296
+DECLARE @FECHA AS DATE='22/04/2016'
+
+UPDATE documentos
+SET fecha = @FECHA,fecha_hora=@FECHA
+WHERE tipo= @TIPO AND numero = @NUMERO
+
+UPDATE movimiento
+SET fec = @FECHA
+WHERE tipo= @TIPO AND numero = @NUMERO
+
+UPDATE documentos_lin
+SET fec = @FECHA
+WHERE tipo= @TIPO AND numero = @NUMERO 

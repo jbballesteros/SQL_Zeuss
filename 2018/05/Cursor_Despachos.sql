@@ -1,0 +1,71 @@
+DECLARE @TSQL AS VARCHAR(100)
+DECLARE @RST AS INTEGER
+DECLARE @MAX_NUMERO AS INTEGER
+DECLARE @NIT AS DECIMAL(18,0)
+DECLARE @TIPO AS VARCHAR(4)
+DECLARE @NUMERO AS INTEGER
+DECLARE @USUARIO AS VARCHAR(100)
+DECLARE @PC AS VARCHAR
+
+SET @TSQL='DOCUMENTOS_DESPACHOS_TRANSA'
+SET @RST =0
+	
+BEGIN TRAN 	@TSQL
+	
+	BEGIN TRY
+
+		DECLARE DDTR CURSOR  
+		
+			FOR 
+			
+			SELECT D.tipo,D.numero
+			FROM documentos D 
+			LEFT JOIN documentos_despachos DD ON (D.tipo=DD.tipo_desp AND D.numero=DD.numero_desp)
+			WHERE D.sw=1 AND DD.tipo_desp IS NULL AND  D.fecha<='06/04/2018'
+
+		OPEN DDTR
+
+		FETCH NEXT FROM DDTR INTO @TIPO,@NUMERO
+
+		WHILE @@FETCH_STATUS = 0  
+		BEGIN 
+			SELECT @NIT=nit,@PC=pc,@USUARIO=USUARIO
+			FROM documentos
+			WHERE tipo=@TIPO AND numero=@NUMERO
+
+
+			SELECT @MAX_NUMERO=MAX(numero)+1
+			FROM documentos_desp_enc			
+			
+			INSERT INTO documentos_desp_enc(numero,fecha,fecha_modif,nit,fecha_hora_salida,usuario,pc,Valor_Traslado,fecha_estimada)
+			VALUES (@MAX_NUMERO,CAST(GETDATE() AS DATE),CAST(GETDATE() AS DATE),@NIT,GETDATE(),@USUARIO,@PC,0,GETDATE())
+			
+			INSERT INTO documentos_despachos (numero,tipo_desp,numero_desp,fecha,nit,guia,Placa)
+			VALUES (@MAX_NUMERO,@TIPO,@NUMERO,GETDATE(),@NIT,'30200000000-1',NULL)
+
+			FETCH NEXT FROM DDTR INTO @TIPO,@NUMERO
+		END
+		
+		CLOSE DDTR
+		DEALLOCATE DDTR
+		
+		COMMIT TRANSACTION
+
+		END TRY
+			
+						
+		BEGIN CATCH
+		
+			ROLLBACK TRANSACTION @TSQL
+
+			SELECT ERROR_MESSAGE()
+
+						
+			CLOSE DDTR
+			DEALLOCATE DDTR
+		
+			SET @RST=0
+			
+		END CATCH
+
+

@@ -1,0 +1,61 @@
+DECLARE @EMPRESA AS VARCHAR(50)
+DECLARE @ID_PAGO AS INTEGER
+DECLARE @MENSAJE AS VARCHAR(250)
+DECLARE @TTIPO_DMS AS VARCHAR(4)
+DECLARE @NNUMERO_DMS AS INTEGER
+DECLARE @RPTA AS BIT
+DECLARE @ID AS INTEGER
+
+DECLARE CR_ACTUALIZAR_PSE CURSOR  
+		
+FOR 
+			
+SELECT P.id,P.idpago,P.respuesta,P.tipo,P.numero,
+CASE WHEN RESPUESTA=1 THEN 'DOC|' + P.tipo + '|' + CAST(P.numero AS VARCHAR) 
+ELSE P.mensaje  END descripcion,E.descripcion empresa
+FROM pse_documentos_insertados P INNER JOIN EMPRESAS E ON (P.EMPRESA=E.EMPRESA)
+WHERE interfazo =0
+
+OPEN CR_ACTUALIZAR_PSE
+
+FETCH NEXT FROM CR_ACTUALIZAR_PSE INTO @ID,@ID_PAGO,@RPTA,@TTIPO_DMS,@NNUMERO_DMS,@MENSAJE,@EMPRESA
+
+WHILE @@FETCH_STATUS = 0  
+		BEGIN 
+
+			IF @RPTA=0
+			BEGIN
+				EXEC [AZURECLUDP].[cloudp].[dbo].[sp_PSE_Updates]
+				@PSW=9,
+				@pid_pago=@ID_PAGO,
+				@pempresa=@EMPRESA,				
+				@ERROR=@MENSAJE
+				
+			END
+
+			IF @RPTA=1
+			BEGIN
+				EXEC [AZURECLUDP].[cloudp].[dbo].[sp_PSE_Updates]
+					@PSW=9,
+					@pid_pago=@ID_PAGO,
+					@pempresa=@EMPRESA,	
+					@interfazo=1,			
+					@ERROR=@MENSAJE,
+					@TIPO_DMS=@TTIPO_DMS,
+					@NUMERO_DMS=@NNUMERO_DMS
+
+					UPDATE pse_documentos_insertados
+					SET interfazo=1
+					WHERE ID=@ID
+			END
+
+
+			
+
+		FETCH NEXT FROM CR_ACTUALIZAR_PSE INTO @ID,@ID_PAGO,@RPTA,@TTIPO_DMS,@NNUMERO_DMS,@MENSAJE,@EMPRESA
+
+		END
+
+
+		CLOSE CR_ACTUALIZAR_PSE
+		DEALLOCATE CR_ACTUALIZAR_PSE

@@ -1,0 +1,138 @@
+DECLARE @NIT  AS DECIMAL(18,0)
+DECLARE @CLIENTE  AS VARCHAR(500)
+DECLARE @VENDEDOR AS DECIMAL(18,0)
+DECLARE @VENDEDOR_NOMBRE AS VARCHAR(250)
+DECLARE @TIPO AS VARCHAR(100)
+DECLARE @INICIAL AS DATE
+DECLARE @FINAL AS DATE
+DECLARE @TIPO_CONTRATO AS VARCHAR(50)
+DECLARE @VOLUMEN_CONTRATO AS FLOAT
+DECLARE @VOLUMEN_ACUMULADO_ACTUAL AS FLOAT
+DECLARE @VOLUMEN_RESTANTE AS FLOAT
+DECLARE @PROMEDIO AS FLOAT
+DECLARE @ESTIMADO AS FLOAT
+DECLARE @MESES AS INTEGER
+DECLARE @DESCRIPCION AS VARCHAR(MAX)
+DECLARE @CONCEPTO_2 AS VARCHAR(100)
+DECLARE @MAIL AS VARCHAR(100)
+DECLARE @CELULAR AS VARCHAR(100)
+DECLARE @TSQL AS VARCHAR
+DECLARE @CONSECUTIVO AS INTEGER
+DECLARE @CUMPLIMIENTO AS REAL
+DECLARE @ASUNTOM AS VARCHAR(250)
+DECLARE @MAIL_ASESOR AS VARCHAR(100)
+DECLARE @MAIL_GERENTE AS VARCHAR(100)
+
+DECLARE CALERTAS_CONTRATOS CURSOR
+
+
+FOR
+
+SELECT  V.NIT,V.CLIENTE + ' - ' + ISNULL(V.RAZON_COMERCIAL,'')  CLIENTE,T.vendedor,
+V.TIPO_EDS,V.FECHA_INICIAL,V.FECHA_FINAL,V.TIPO_CONTRATO,V.VOLUMEN_TOTAL_CONTRATO,V.VOLUMEN_ACUMULADO_ACTUAL,ROUND(V.VOLUMEN_FALTANTE,0) VOLUMEN_FALTANTE,V.PROMEDIO_MENSUAL,V.GALONAJE_MENSUAL_ESTIMADO,DATEDIFF(MONTH,GETDATE(),FECHA_FINAL) MESES,T.concepto_2,isnull(T.mail,'') mail,isnull(T.celular,0) celular,
+ROUND((PROMEDIO_MENSUAL/GALONAJE_MENSUAL_ESTIMADO)*100,2) CUMPLIMIENTO,TV.nombres nombres_vendedor,TV.mail mail_asesor,TVV.mail mail_gerente
+FROM V_CO007_TBL V 
+INNER JOIN terceros T ON (V.NIT=T.nit)
+INNER JOIN terceros TV ON (T.vendedor=TV.nit)
+LEFT JOIN terceros TVV ON (TV.vendedor=TVV.nit)
+LEFT JOIN contratos_alertas C ON (C.tipo_alerta=7 AND C.nit=T.nit)
+WHERE DATEDIFF(MONTH,GETDATE(),FECHA_FINAL)<19 AND C.nit IS NULL
+ORDER BY MESES ASC
+
+SELECT @TSQL='CALERTAS_CONTRATOS'
+
+OPEN CALERTAS_CONTRATOS
+
+ FETCH NEXT FROM CALERTAS_CONTRATOS INTO @NIT,@CLIENTE,@VENDEDOR,@TIPO,@INICIAL,@FINAL,@TIPO_CONTRATO,@VOLUMEN_CONTRATO,
+ @VOLUMEN_ACUMULADO_ACTUAL,@VOLUMEN_RESTANTE,@PROMEDIO,@ESTIMADO,@MESES,@CONCEPTO_2,@MAIL,@CELULAR,@CUMPLIMIENTO,@VENDEDOR_NOMBRE,
+ @MAIL_ASESOR,@MAIL_GERENTE
+
+ WHILE @@FETCH_STATUS = 0  
+    BEGIN 
+		BEGIN TRY
+
+			SELECT @ASUNTOM='Alerta vencimiento de contrato del cliente: ' +  CAST(@NIT AS VARCHAR) + ' - ' + @CLIENTE
+
+			SELECT @DESCRIPCION=
+			N'Alerta por vencimiento de contrato en el cliente ' +  CAST(@NIT AS VARCHAR) + ' - ' + @CLIENTE + CHAR(13) + CHAR(13) +
+			N'Tipo EDS: ' + @TIPO + CHAR(13) + 
+			N'Tipo Contrato: ' +  @TIPO_CONTRATO + CHAR(13) + 
+			N'Fecha Inicial: ' + CONVERT(VARCHAR,@INICIAL,103)   + CHAR(13) + 
+			N'Fecha Final: '  + CONVERT(VARCHAR,@FINAL,103)  + CHAR(13) +  
+			N'Volumen Contrato: ' + CONVERT(VARCHAR,CAST(@VOLUMEN_CONTRATO AS MONEY),1) + CHAR(13) + 
+			N'Volumen Acumulado: ' + CONVERT(VARCHAR,CAST(@VOLUMEN_ACUMULADO_ACTUAL AS MONEY) ,1) + CHAR(13) + 
+			N'Volumen Restante: ' + CONVERT(VARCHAR,CAST(@VOLUMEN_RESTANTE AS MONEY),1) + CHAR(13) + 
+			N'Promedio mensual actual: ' + CONVERT(VARCHAR,CAST(@PROMEDIO AS MONEY),1) + CHAR(13) +  
+			N'Promedio mensual estimado: ' + CONVERT(VARCHAR,CAST(@ESTIMADO AS MONEY),1) + CHAR(13) +
+			N'Cumplimiento de contrato: ' +  CONVERT(VARCHAR,CAST(@CUMPLIMIENTO AS MONEY),1) + ' %' +  CHAR(13) +
+			N'Meses restantes: ' + CAST(@MESES AS VARCHAR) + CHAR(13) 
+
+			BEGIN TRAN 	@TSQL
+
+				INSERT INTO pipeline.dbo.encabezado_tbl(nit,nombre_cliente,fecha_ingreso,usuario,historia_negocio,
+				clasificacion,clase,cargo,herramienta,semaforo,TipoProyecto,celular,correo,fecha_final_estimada,SedeProyecto)
+				VALUES (@NIT,@CLIENTE,GETDATE(),@VENDEDOR,@DESCRIPCION,NULL,@CONCEPTO_2,1,NULL,0,7,@CELULAR,@MAIL,DATEADD(MONTH,1,GETDATE()),NULL)
+				
+				SELECT @CONSECUTIVO=MAX(consecutivo)
+				FROM pipeline.dbo.encabezado_tbl
+				WHERE nit=@NIT
+
+				INSERT INTO pipeline.dbo.detalle (consecutivo,etapas,fecha_inicial,fecha_final,fecha_final_real, herramienta,cargo)
+				VALUES (@CONSECUTIVO,1,getdate(),getdate()+30,null,1,1)
+
+				INSERT INTO  pipeline.dbo.detalle_etapa (id_proyecto,id_pregunta,respuesta,estado)
+				SELECT  @CONSECUTIVO, id_pregunta, 0,1 
+				FROM  pipeline.dbo.preguntas_etapa 
+				WHERE  etapa_pregunta=1
+
+				INSERT INTO contratos_alertas (nit,tipo_alerta,fecha_hora,usuario,mail_asesor,mail_gerente,descripcion,correcto,asesor,consecutivo)
+				VALUES (@NIT,7,GETDATE(),'AUTOMATICO',@MAIL_ASESOR,@MAIL_GERENTE,'Alerta a Pipeline Vencimiento',1,@VENDEDOR,@CONSECUTIVO)
+
+				SELECT @DESCRIPCION=
+				N'Se ha generado una alerta por vencimiento de contrato en el cliente ' +  CAST(@NIT AS VARCHAR) + ' - ' + @CLIENTE + '<br><br>'  +
+				N'Tipo EDS: ' + @TIPO + '<br>' + 
+				N'Tipo Contrato: ' +  @TIPO_CONTRATO + '<br>' + 
+				N'Fecha Inicial: ' + CONVERT(VARCHAR,@INICIAL,103)   +'<br>' + 
+				N'Fecha Final: '  + CONVERT(VARCHAR,@FINAL,103)  + '<br>' +  
+				N'Volumen Contrato: ' + CONVERT(VARCHAR,CAST(@VOLUMEN_CONTRATO AS MONEY),1) + '<br>' + 
+				N'Volumen Acumulado: ' + CONVERT(VARCHAR,CAST(@VOLUMEN_ACUMULADO_ACTUAL AS MONEY) ,1) + '<br>' + 
+				N'Volumen Restante: ' + CONVERT(VARCHAR,CAST(@VOLUMEN_RESTANTE AS MONEY),1) + '<br>' + 
+				N'Promedio mensual actual: ' + CONVERT(VARCHAR,CAST(@PROMEDIO AS MONEY),1) + '<br>' +  
+				N'Promedio mensual estimado: ' + CONVERT(VARCHAR,CAST(@ESTIMADO AS MONEY),1) + '<br>' +
+				N'Cumplimiento de contrato: ' +  CONVERT(VARCHAR,CAST(@CUMPLIMIENTO AS MONEY),1) + ' % <br>' +
+				N'Meses restantes: ' + CAST(@MESES AS VARCHAR) + '<br><br><br>' +
+				N'Por favor hacerle seguimiento por medio de la plataforma.'
+
+
+				EXEC [spEnviarAlertas_Pipeline]  
+				@SW=1,
+				@RAZON_COMERCIAL=@VENDEDOR_NOMBRE,
+				@MAIL=@MAIL_ASESOR,
+				@MAIL_COPIA=@MAIL_GERENTE,
+				@ASUNTO=@ASUNTOM,
+				@HTMLE=@DESCRIPCION
+				
+			COMMIT TRANSACTION		
+			
+
+
+		END TRY
+		BEGIN CATCH
+			ROLLBACK TRANSACTION @TSQL
+			INSERT INTO contratos_alertas (nit,tipo_alerta,fecha_hora,usuario,mail_asesor,mail_gerente,descripcion,correcto)
+			VALUES (@NIT,7,GETDATE(),'AUTOMATICO',@MAIL_ASESOR,@MAIL_GERENTE,ERROR_MESSAGE(),0)			
+		END CATCH
+	
+		WAITFOR DELAY '00:00:15'
+
+
+		FETCH NEXT FROM CALERTAS_CONTRATOS INTO @NIT,@CLIENTE,@VENDEDOR,@TIPO,@INICIAL,@FINAL,@TIPO_CONTRATO,@VOLUMEN_CONTRATO,
+		@VOLUMEN_ACUMULADO_ACTUAL,@VOLUMEN_RESTANTE,@PROMEDIO,@ESTIMADO,@MESES,@CONCEPTO_2,@MAIL,@CELULAR,@CUMPLIMIENTO,@VENDEDOR_NOMBRE,
+		@MAIL_ASESOR,@MAIL_GERENTE
+
+	END
+
+
+CLOSE CALERTAS_CONTRATOS
+ 
+DEALLOCATE CALERTAS_CONTRATOS

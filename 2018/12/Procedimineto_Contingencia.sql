@@ -1,0 +1,22 @@
+DECLARE @ID AS INTEGER
+DECLARE @CONT AS INTEGER
+
+SELECT @ID=1
+FROM id_cont
+
+DELETE FROM temp_fe
+
+INSERT INTO temp_fe
+SELECT *
+FROM fn_facturaelectronica(1,@ID)
+
+
+
+SELECT @CONT=COUNT(numero)
+FROM temp_fe
+
+IF @CONT<=50
+BEGIN
+	UPDATE id_cont
+	SET ID=@ID+1
+END
